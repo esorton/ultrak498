@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2014 Eric F Sorton
+# Copyright (c) 2014-2015 Eric F Sorton
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -32,22 +32,26 @@ import serial
 def bcdTOint(byte):
     """Converts a packed, little-endian, binary coded decimal to an int.
 
+    NOTE: byte must be a string (length of 1).  A ValueException is generated
+    if the length is greater than 1 or if the decoded value is less than 0 or
+    greater than 99.
+
     Returns a decimal value between 0 and 99.
     """
 
     # Method only works on single bytes.
     if len(byte) > 1:
-        raise ValueError(":TODO:")
+        raise ValueError("Invalid length; bcdToInt() assumes single byte input.")
 
     # Get the tens place; value must be a single digit.
     tens = int((ord(byte) >> 0) & 0x0F)
     if (tens < 0) or (tens > 9):
-        raise ValueError(":TODO:")
+        raise ValueError("Invalid BCD digit; tens place is not 0-9.")
 
     # Get the ones place; value must be a single digit.
     ones = int((ord(byte) >> 4) & 0x0F)
     if (ones < 0) or (ones > 9):
-        raise ValueError(":TODO:")
+        raise ValueError("Invalid BCD digit; ones place is not 0-9.")
 
     return (tens*10 + ones)
 
