@@ -29,7 +29,7 @@ import optparse
 import sys
 import serial
 
-def bcdTOint(byte):
+def bcd_to_int(bcd_byte):
     """Converts a packed, little-endian, binary coded decimal to an int.
 
     NOTE: byte must be a string (length of 1).  A ValueException is generated
@@ -40,16 +40,16 @@ def bcdTOint(byte):
     """
 
     # Method only works on single bytes.
-    if len(byte) > 1:
+    if len(bcd_byte) > 1:
         raise ValueError("Invalid length; bcdToInt() assumes single byte input.")
 
     # Get the tens place; value must be a single digit.
-    tens = int((ord(byte) >> 0) & 0x0F)
+    tens = int((ord(bcd_byte) >> 0) & 0x0F)
     if (tens < 0) or (tens > 9):
         raise ValueError("Invalid BCD digit; tens place is not 0-9.")
 
     # Get the ones place; value must be a single digit.
-    ones = int((ord(byte) >> 4) & 0x0F)
+    ones = int((ord(bcd_byte) >> 4) & 0x0F)
     if (ones < 0) or (ones > 9):
         raise ValueError("Invalid BCD digit; ones place is not 0-9.")
 
