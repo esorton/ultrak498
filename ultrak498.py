@@ -55,28 +55,71 @@ def bcd_to_int(bcd_byte):
 
     return (tens*10 + ones)
 
+
+def bcd_string_to_integer_list(bcd_string):
+    """Converts a packed, little-endian, binary coded string to a list of integers.
+
+    Returns a list of integers.  Each integer in the list is between 0 and 99.
+    """
+    return [bcd_to_int(byte) for byte in bcd_string]
+
+
+def integer_list_to_named_tuple(list_of_integers):
+    """
+    Converts a list of integers read from the ultrak498 into a named tuple
+    based upon the type.  The type is determiend by the first integer in the
+    list.  Since all tuples contain five fields, the list of integers must
+    have a length of five.
+
+    Returns a named tuple based on the type,
+    """
+
+    # Dictionary mapping type id to record named tuples.
+    valid_types = {
+         0: namedtuple("RaceHeader", "type year month day id"),
+         1: namedtuple("RaceHeader", "type year month day id"),
+         2: namedtuple("RaceHeader", "type year month day id"),
+         3: namedtuple("RaceHeader", "type year month day id"),
+         4: namedtuple("RaceHeader", "type year month day id"),
+         5: namedtuple("RaceHeader", "type year month day id"),
+         6: namedtuple("RaceHeader", "type year month day id"),
+         7: namedtuple("RaceHeader", "type year month day id"),
+         8: namedtuple("RaceHeader", "type year month day id"),
+         9: namedtuple("RaceHeader", "type year month day id"),
+        10: namedtuple("LapTime",    "type minutes seconds hundreths lap"),
+        20: namedtuple("AbsTime",    "type minutes seconds hundreths lap"),
+        30: namedtuple("Type30",     "type a b c laps"),
+        40: namedtuple("Type40",     "type a b c laps"),
+        50: namedtuple("RaceEnd",    "type minutes seconds hundreths laps"),
+        }
+
+    # List of integers must be length of five.
+    if len(list_of_integers) != 5:
+        raise ValueError("Unable to convert list of integers to tuple; incorrect number of integers.")
+
+    # First byte is the type; type must be known.
+    tuple_type = list_of_integers[0]
+    if tuple_type not in valid_types:
+        raise ValueError("Unable to convert list of integers to tuple; unknown record type [%d]." % tuple_type)
+
+    # Create a namedtuple based upon the tuple_type.
+    named_tuple = valid_types[tuple_type]._make(list_of_integers)
+
+    return named_tuple
+
+
 def readRecord(in_file):
     """Generator to read each record from the input file.
 
     Returns the next record as a named tuples.
     """
 
-    # Dictionary mapping type id to record named tuples.
-    recordTypes = {
-         0: namedtuple("RaceHeaderRecord", "type year month day id"),
-        10: namedtuple("LapTimeRecord",    "type minutes seconds hundreths lap"),
-        20: namedtuple("AbsTimeRecord",    "type minutes seconds hundreths lap"),
-        30: namedtuple("Type30Record",     "type a b c laps"),
-        40: namedtuple("Type40Record",     "type a b c laps"),
-        50: namedtuple("RaceEndRecord",    "type minutes seconds hundreths laps"),
-        }
-
     # Need to track hundreds place manually since single byte BCD can't
-    # represent a number greater than 100.
+    # represent a number greater than 100.  Timer overlows from 99 to 00 to
+    # represent the hundreds place.
     lap_hundreds = 0
     abs_hundreds = 0
 
-    # Loop till end-of-file or timeout (in the case of a serial connection).
     while True:
 
         # Records are always five bytes wide; read one record.
@@ -84,18 +127,10 @@ def readRecord(in_file):
         if not record_bytes:
             break
         if len(record_bytes) != 5:
-            raise ValueError(":TODO:")
+            raise ValueError(":TODO:wrong length")
 
-        # Convert raw BCD bytes to integers.
-        record_bytes = [bcdTOint(byte) for byte in record_bytes]
-
-        # First byte is the record type; record type must be known.
-        record_type = record_bytes[0]
-        if record_type not in recordTypes:
-            raise ValueError(":TODO:")
-
-        # Create a namedtuple based upon the record_type.
-        record = recordTypes[record_type]._make(record_bytes)
+        record_bytes = bcd_string_to_integer_list(record_bytes)
+        record = integer_list_to_named_tuple(record_bytes)
 
         # Adjust the hundreds of the lap/place record if needed.
         if (record.type == 10) and (record.lap == 0):
@@ -107,13 +142,14 @@ def readRecord(in_file):
 
         yield record
 
+
 def openFile(infile):
     """Attempts to open the given file.
 
     Returns a file object.
     """
 
-    # First, check if in_file is a file object.
+    # First, use infile if it is a file object.
     if isinstance(infile, file):
         return infile
 
@@ -137,6 +173,7 @@ def readRecords(infile):
     infile = openFile(infile)
     return [record for record in readRecord(infile)]
 
+
 if __name__ == "__main__":
     parser = optparse.OptionParser()
     parser.add_option("-f", "--infile",   dest="infile",   metavar="FILE",           default=sys.stdin,  help="Input file, stdin if not specified.")
@@ -146,7 +183,7 @@ if __name__ == "__main__":
 
     current_race = 0
     for record in readRecords(options.infile):
-        if record.type == 0:
+        if record.type < 10:
             current_race = record.id
         if (record.type == 20) and (current_race == options.raceid):
             total_in_hundreths = record.minutes*60*100 + record.seconds*100 + record.hundreths
