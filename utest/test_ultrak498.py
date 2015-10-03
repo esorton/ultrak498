@@ -88,6 +88,25 @@ class TEST_bcd_to_int(unittest.TestCase):
         with self.assertRaises(ValueError):
             ultrak498.bcd_to_int(chr(0x0A))
 
+class TEST_bcd_string_to_integer_list(unittest.TestCase):
+    def testEmptyStringReturnsEmptyList(self):
+        value = ultrak498.bcd_string_to_integer_list("")
+        self.assertEqual(value, [])
+
+    def testOneByteStringReturnsOneItemList(self):
+        value = ultrak498.bcd_string_to_integer_list(chr(0x32))
+        self.assertEqual(value, [23])
+
+    def testTwoByteStringReturnsTwoItemList(self):
+        value = ultrak498.bcd_string_to_integer_list(chr(0x52) + chr(0x21))
+        self.assertEqual(value, [25,12])
+
+    def testFiveByteStringReturnsFiveItemList(self):
+        value = ultrak498.bcd_string_to_integer_list(chr(0x11) + chr(0x21) + chr(0x31) + chr(0x41) + chr(0x51))
+        self.assertEqual(value, [11,12,13,14,15])
+
+
+
 ##############################################################################
 # vim: ts=4 sts=4 sw=4 tw=78 sta et
 ##############################################################################
