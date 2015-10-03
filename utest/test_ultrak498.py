@@ -105,6 +105,86 @@ class TEST_bcd_string_to_integer_list(unittest.TestCase):
         value = ultrak498.bcd_string_to_integer_list(chr(0x11) + chr(0x21) + chr(0x31) + chr(0x41) + chr(0x51))
         self.assertEqual(value, [11,12,13,14,15])
 
+class TEST_integer_list_to_named_tuple(unittest.TestCase):
+    def testInvalidInputArgument(self):
+        with self.assertRaises(ValueError):
+            value = ultrak498.integer_list_to_named_tuple("")
+
+    def testInvalidLengthOfTuple(self):
+        with self.assertRaises(ValueError):
+            value = ultrak498.integer_list_to_named_tuple([0,0,0])
+
+    def testInvalidType(self):
+        with self.assertRaises(ValueError):
+            value = ultrak498.integer_list_to_named_tuple([99,0,0,0,0])
+
+    def testRaceHeaderTuple(self):
+        value = ultrak498.integer_list_to_named_tuple([1,0,0,0,0])
+        self.assertEqual(value, (1,0,0,0,0))
+        self.assertEqual(value.type, 1)
+        self.assertEqual(value.year, 0)
+        self.assertEqual(value.month, 0)
+        self.assertEqual(value.day, 0)
+        self.assertEqual(value.id, 0)
+
+        value = ultrak498.integer_list_to_named_tuple([2,1,2,3,4])
+        self.assertEqual(value, (2,1,2,3,4))
+        self.assertEqual(value.type, 2)
+        self.assertEqual(value.year, 1)
+        self.assertEqual(value.month, 2)
+        self.assertEqual(value.day, 3)
+        self.assertEqual(value.id, 4)
+
+    def testLapTimeTuple(self):
+        value = ultrak498.integer_list_to_named_tuple([10,0,0,0,0])
+        self.assertEqual(value, (10,0,0,0,0))
+        self.assertEqual(value.type, 10)
+        self.assertEqual(value.minutes, 0)
+        self.assertEqual(value.seconds, 0)
+        self.assertEqual(value.hundreths, 0)
+        self.assertEqual(value.lap, 0)
+
+        value = ultrak498.integer_list_to_named_tuple([10,1,2,3,4])
+        self.assertEqual(value, (10,1,2,3,4))
+        self.assertEqual(value.type, 10)
+        self.assertEqual(value.minutes, 1)
+        self.assertEqual(value.seconds, 2)
+        self.assertEqual(value.hundreths, 3)
+        self.assertEqual(value.lap, 4)
+
+    def testAbsTimeTuple(self):
+        value = ultrak498.integer_list_to_named_tuple([20,0,0,0,0])
+        self.assertEqual(value, (20,0,0,0,0))
+        self.assertEqual(value.type, 20)
+        self.assertEqual(value.minutes, 0)
+        self.assertEqual(value.seconds, 0)
+        self.assertEqual(value.hundreths, 0)
+        self.assertEqual(value.lap, 0)
+
+        value = ultrak498.integer_list_to_named_tuple([20,1,2,3,4])
+        self.assertEqual(value, (20,1,2,3,4))
+        self.assertEqual(value.type, 20)
+        self.assertEqual(value.minutes, 1)
+        self.assertEqual(value.seconds, 2)
+        self.assertEqual(value.hundreths, 3)
+        self.assertEqual(value.lap, 4)
+
+    def testRaceEndTuple(self):
+        value = ultrak498.integer_list_to_named_tuple([50,0,0,0,0])
+        self.assertEqual(value, (50,0,0,0,0))
+        self.assertEqual(value.type, 50)
+        self.assertEqual(value.minutes, 0)
+        self.assertEqual(value.seconds, 0)
+        self.assertEqual(value.hundreths, 0)
+        self.assertEqual(value.laps, 0)
+
+        value = ultrak498.integer_list_to_named_tuple([50,1,2,3,4])
+        self.assertEqual(value, (50,1,2,3,4))
+        self.assertEqual(value.type, 50)
+        self.assertEqual(value.minutes, 1)
+        self.assertEqual(value.seconds, 2)
+        self.assertEqual(value.hundreths, 3)
+        self.assertEqual(value.laps, 4)
 
 
 ##############################################################################
