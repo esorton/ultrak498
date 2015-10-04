@@ -29,6 +29,22 @@ import optparse
 import sys
 import serial
 
+def static_vars(**kwargs):
+    """Python decorator to declare static variables on a method.
+
+    NOTE: Relies on the Python feature that allows attributes to be added to a
+    function.  See:
+
+        http://stackoverflow.com/questions/279561/what-is-the-python-equivalent-of-static-variables-inside-a-function
+
+    for source of decorator code and additional information.
+    """
+    def decorate(func):
+        for k in kwargs:
+            setattr(func, k, kwargs[k])
+        return func
+    return decorate
+
 def bcd_to_int(bcd_byte):
     """Converts a packed, little-endian, binary coded decimal to an int.
 
@@ -107,6 +123,34 @@ def integer_list_to_named_tuple(list_of_integers):
 
     return named_tuple
 
+@static_vars(lap_hundreds=0, abs_hundreds=0)
+def adjust_lap_hundreds(record):
+    """Adjusts the lap records to account for more than 99 laps/runners.
+
+    As BCD cannot represent a value greater than 100, if there are more than
+    100 laps/runners within a single race, the ultrak498 timer overflows to
+    the lap to 0.
+    """
+    record_type_name = type(record).__name__
+
+    # Reset hundreds place when a new races starts.
+    if record_type_name == 'RaceHeader':
+        adjust_lap_hundreds.lap_hundreds = 0
+        adjust_lap_hundreds.abs_hundreds = 0
+
+    # Adjust lap by hundreds place; increment on overflow.
+    elif record_type_name == 'LapTime':
+        if record.lap == 0:
+            adjust_lap_hundreds.lap_hundreds += 100
+        record = record._replace(lap=(record.lap + adjust_lap_hundreds.lap_hundreds))
+
+    # Adjust abs by hundreds place; increment on overflow.
+    elif record_type_name == 'AbsTime':
+        if record.lap == 0:
+            adjust_lap_hundreds.abs_hundreds += 100
+        record = record._replace(lap=(record.lap + adjust_lap_hundreds.abs_hundreds))
+
+    return record
 
 def readRecord(in_file):
     """Generator to read each record from the input file.
@@ -114,33 +158,20 @@ def readRecord(in_file):
     Returns the next record as a named tuples.
     """
 
-    # Need to track hundreds place manually since single byte BCD can't
-    # represent a number greater than 100.  Timer overlows from 99 to 00 to
-    # represent the hundreds place.
-    lap_hundreds = 0
-    abs_hundreds = 0
-
     while True:
 
         # Records are always five bytes wide; read one record.
-        record_bytes = in_file.read(5)
-        if not record_bytes:
+        record_as_bsd_string = in_file.read(5)
+        if not record_as_bsd_string:
             break
-        if len(record_bytes) != 5:
+        if len(record_as_bsd_string) != 5:
             raise ValueError(":TODO:wrong length")
 
-        record_bytes = bcd_string_to_integer_list(record_bytes)
-        record = integer_list_to_named_tuple(record_bytes)
+        record_as_integer_list = bcd_string_to_integer_list(record_as_bsd_string)
+        record_as_namedtuple = integer_list_to_named_tuple(record_as_integer_list)
+        adjusted_record_as_namedtuple = adjust_lap_hundreds(record_as_namedtuple)
 
-        # Adjust the hundreds of the lap/place record if needed.
-        if (record.type == 10) and (record.lap == 0):
-            lap_hundreds += 100
-            record = record._replace(lap=(record.lap + lap_hundreds))
-        if (record.type == 20) and (record.lap == 0):
-            abs_hundreds += 100
-            record = record._replace(lap=(record.lap + abs_hundreds))
-
-        yield record
+        yield adjusted_record_as_namedtuple
 
 
 def openFile(infile):
