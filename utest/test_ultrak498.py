@@ -26,6 +26,7 @@
 
 import unittest
 import ultrak498
+from collections import namedtuple
 
 class TEST_bcd_to_int(unittest.TestCase):
     def testValueOfZeroReturnsZero(self):
@@ -186,6 +187,96 @@ class TEST_integer_list_to_named_tuple(unittest.TestCase):
         self.assertEqual(value.hundreths, 3)
         self.assertEqual(value.laps, 4)
 
+class TEST_adjust_lap_hundreds(unittest.TestCase):
+    def testNoAdjustmentLap(self):
+        ultrak498.adjust_lap_hundreds.lap_hundreds = 0
+
+        LapTimeMock = namedtuple('LapTime', 'lap')
+        for test_value in [1, 2, 11, 23, 45, 68, 80, 99]:
+            in_record = LapTimeMock(test_value)
+            out_record = ultrak498.adjust_lap_hundreds(in_record)
+            self.assertEqual(in_record, out_record)
+
+    def testNoAdjustmentAbs(self):
+        ultrak498.adjust_lap_hundreds.abs_hundreds = 0
+
+        AbsTimeMock = namedtuple('AbsTime', 'lap')
+        for test_value in [1, 2, 11, 23, 45, 68, 80, 99]:
+            in_record = AbsTimeMock(test_value)
+            out_record = ultrak498.adjust_lap_hundreds(in_record)
+            self.assertEqual(in_record, out_record)
+
+    def testAdjustmentLapForHundreds(self):
+        ultrak498.adjust_lap_hundreds.lap_hundreds = 0
+
+        LapTimeMock = namedtuple('LapTime', 'lap')
+        for test_value, expected_value in [(99, 99), (0, 100), (1, 101), (2, 102), (99, 199), (0, 200), (21, 221), (0, 300), (0, 400), (0, 500), (55, 555)]:
+            in_record = LapTimeMock(test_value)
+            out_record = ultrak498.adjust_lap_hundreds(in_record)
+            self.assertEqual(LapTimeMock(expected_value), out_record)
+
+    def testAdjustmentAbsForHundreds(self):
+        ultrak498.adjust_lap_hundreds.abs_hundreds = 0
+
+        AbsTimeMock = namedtuple('AbsTime', 'lap')
+        for test_value, expected_value in [(99, 99), (0, 100), (1, 101), (2, 102), (99, 199), (0, 200), (21, 221), (0, 300), (0, 400), (0, 500), (55, 555)]:
+            in_record = AbsTimeMock(test_value)
+            out_record = ultrak498.adjust_lap_hundreds(in_record)
+            self.assertEqual(AbsTimeMock(expected_value), out_record)
+
+    def testAdjustmentForHundredsResetOnRaceStart(self):
+        ultrak498.adjust_lap_hundreds.lap_hundreds = 0
+        ultrak498.adjust_lap_hundreds.abs_hundreds = 0
+
+        RaceHeaderMock = namedtuple('RaceHeader', 'ignore')
+        LapTimeMock = namedtuple('LapTime', 'lap')
+        AbsTimeMock = namedtuple('AbsTime', 'lap')
+
+        in_record = LapTimeMock(1)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(in_record, out_record)
+        in_record = AbsTimeMock(1)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(in_record, out_record)
+
+        in_record = LapTimeMock(99)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(in_record, out_record)
+        in_record = AbsTimeMock(99)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(in_record, out_record)
+
+        in_record = LapTimeMock(0)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(LapTimeMock(100), out_record)
+        in_record = AbsTimeMock(0)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(AbsTimeMock(100), out_record)
+
+        in_record = LapTimeMock(99)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(LapTimeMock(199), out_record)
+        in_record = AbsTimeMock(99)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(AbsTimeMock(199), out_record)
+
+        in_record = LapTimeMock(0)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(LapTimeMock(200), out_record)
+        in_record = AbsTimeMock(0)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(AbsTimeMock(200), out_record)
+
+        in_record = RaceHeaderMock(0)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(in_record , out_record)
+
+        in_record = LapTimeMock(1)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(in_record, out_record)
+        in_record = AbsTimeMock(1)
+        out_record = ultrak498.adjust_lap_hundreds(in_record)
+        self.assertEqual(in_record, out_record)
 
 ##############################################################################
 # vim: ts=4 sts=4 sw=4 tw=78 sta et
